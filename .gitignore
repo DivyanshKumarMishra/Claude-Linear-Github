@@ -1,0 +1,23 @@
+# compiled output
+/dist
+/node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+
+# IDE
+.idea
+*.iml
+
+# Prisma
+prisma/*.db

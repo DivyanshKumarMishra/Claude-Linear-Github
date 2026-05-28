@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__linear-server__save_issue"
+    ]
+  }
+}

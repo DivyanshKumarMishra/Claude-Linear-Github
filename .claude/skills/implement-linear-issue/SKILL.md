@@ -75,17 +75,22 @@ A single issue identifier, e.g. `CLA-3`. If none is given, run the `get-linear-i
 
 10. **Open PR on explicit approval (separate step).** Commit and PR are two separate user commands; do not auto-open a PR after committing. When the user explicitly says to open the PR (e.g. "open PR", "raise PR", "create PR"):
     1. Read the target repo from `git remote get-url origin`. If origin is missing or non-GitHub, stop and tell the user.
-    2. Push the branch with `-u` if not already tracking a remote.
-    3. **Ask the user for the PR title** — do not auto-generate it. Offer the Linear issue title as a default they can accept or override.
-    4. **Source the PR body from Linear, not the diff.** Re-fetch the latest comments on the issue via `mcp__linear-server__list_comments` and pick the most recent agent-authored implementation summary (the comment posted by step 7 or its step-8 updates). Use that comment verbatim as the PR body. Do NOT compose the body from the working diff — the Linear comment is the single source of truth so PR and Linear stay in agreement.
+    2. **Verify the base branch (recorded in step 2) exists on the remote AND is the GitHub default branch.** This guards two failure modes that bit us in practice:
+       - If the base branch doesn't exist on the remote yet, `gh pr create` errors out because head and base resolve to the same branch (whichever was pushed first).
+       - If the base branch isn't GitHub's default branch, Linear's `Closes <ID>` magic verb won't fire auto-close on merge (close-on-merge only triggers for the default branch unless explicit per-branch automations are configured in Linear).
+
+       Check via `gh repo view <owner/repo> --json defaultBranchRef` and `git ls-remote --heads origin <baseBranch>`. If either check fails, stop and walk the user through pushing the base branch (`git push origin <baseBranch>`) and switching the GitHub default (`gh repo edit <owner/repo> --default-branch <baseBranch>`). Do not proceed until both succeed.
+    3. Push the feature branch with `-u` if not already tracking a remote.
+    4. **Ask the user for the PR title** — do not auto-generate it. Offer the Linear issue title as a default they can accept or override.
+    5. **Source the PR body from Linear, not the diff.** Re-fetch the latest comments on the issue via `mcp__linear-server__list_comments` and pick the most recent agent-authored implementation summary (the comment posted by step 7 or its step-8 updates). Use that comment verbatim as the PR body. Do NOT compose the body from the working diff — the Linear comment is the single source of truth so PR and Linear stay in agreement.
 
        Before drafting, **show the user the comment you're about to use as the PR body** and ask: "Use this as the PR body, or should we update the Linear comment first?" If material iteration happened after the last comment, the user should refresh the Linear comment via a follow-up call before continuing.
 
-    5. **Append a magic-verb closing line and a Linear issue link.** End the body with two lines:
+    6. **Append a magic-verb closing line and a Linear issue link.** End the body with two lines:
        - A Linear issue link (e.g. `Linear issue: https://linear.app/<workspace>/issue/<ISSUE-ID>`) for humans.
        - A magic-verb closing line — default `Closes <ISSUE-ID>` (e.g. `Closes CL-1`). `Fixes <ID>` / `Resolves <ID>` (with `-s`/`-d` variants, case-insensitive) work identically. This is what triggers Linear's GitHub integration to auto-close the issue when the PR merges. **This is exactly why step 7 forbids marking the issue Done in Linear — closing must come from the merge, not from Claude.**
-    6. **One PR, one issue.** Never list multiple `Closes` IDs in a single PR body. If the change spans multiple Linear issues, that's a scope smell — split the PR or merge the issues first. Flag the conflict to the user; do not paper over it with multiple closing lines.
-    7. Create the PR with `gh pr create --title "<user title>" --body "<generated body>"` and return the PR URL.
+    7. **One PR, one issue.** Never list multiple `Closes` IDs in a single PR body. If the change spans multiple Linear issues, that's a scope smell — split the PR or merge the issues first. Flag the conflict to the user; do not paper over it with multiple closing lines.
+    8. Create the PR with `gh pr create --base <baseBranch> --head <featureBranch> --title "<user title>" --body "<generated body>"` and return the PR URL.
 
 ## Notes
 

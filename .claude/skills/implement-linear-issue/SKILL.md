@@ -36,10 +36,28 @@ A single issue identifier, e.g. `CLA-3`. If none is given, run the `get-linear-i
 2. **Branch — always do this BEFORE planning, grilling, or any implementation work.** Set up the working branch in this exact order, so no code/decisions ever happen on a stale or wrong base:
    1. **Ask the user which base branch to branch off** (default `main`, but always confirm — they may want to stack on top of a feature branch).
    2. `git checkout <baseBranch>` then `git pull` to make sure the base is up to date with the remote.
-   3. **Ask the user for the new branch name**, offering the issue's `gitBranchName` as the default.
+   3. **Ask the user for the new branch name.** Do NOT offer Linear's `gitBranchName` as the default — it embeds username/identifier/title fragments the user doesn't want. Instead, suggest a type-prefixed slug following the convention `<type>/<descriptive-slug>` where `<type>` is one of:
+      - `feature/` — new functionality
+      - `improvement/` — enhancement to existing functionality
+      - `bug/` — bug fix
+      - `refactor/` — code restructuring without behavior change
+      - `chore/` — maintenance, dependency bump, tooling
+
+      Examples: `feature/nest-auth-init`, `feature/auth-register`, `bug/cookie-secure-prod`, `refactor/extract-token-service`, `chore/upgrade-prisma-v6`. The slug should describe the *work*, not the issue number. Propose a type-prefixed slug based on the issue's title/scope as the suggestion.
+
+      **The user is free to override with a branch name that omits the prefix entirely** (e.g. `nest-auth-init` instead of `feature/nest-auth-init`). Accept whatever they give without nagging — the convention is a suggestion, not a gate.
    4. `git checkout -b <newBranch>` off the freshly-pulled base.
 
    (Note: this repo may not be initialized as git — if so, ask the user whether to `git init` or implement on the working tree as-is. If there are uncommitted local changes on the current branch when this step starts, stop and ask the user what to do — don't clobber their work with a checkout.)
+
+   **Consequence for Linear linkage:** because branch names carry no issue identifier, and PR titles are also human-meaningful (step 10), the **only** signal that links a PR to a Linear issue is a magic-verb line in the PR body referencing the issue ID. That line is therefore non-negotiable — without it there is no linkage and no auto-close on merge.
+
+   Linear (via GitHub's standard closing keywords) accepts any of these verbs, case-insensitive, with or without the trailing `s`/`d`:
+   - `Close <ID>` / `Closes <ID>` / `Closed <ID>`
+   - `Fix <ID>` / `Fixes <ID>` / `Fixed <ID>`
+   - `Resolve <ID>` / `Resolves <ID>` / `Resolved <ID>`
+
+   Default to `Closes <ISSUE-ID>` for consistency, but any of the above will work identically.
 
 3. **Plan.** Draft a concrete implementation plan from the issue + PRD: which files to create/edit, the routes/contracts to honor, and the acceptance criteria you'll satisfy. Surface the plan to the user via EnterPlanMode/ExitPlanMode if plan mode fits, otherwise just lay it out.
 
@@ -59,8 +77,15 @@ A single issue identifier, e.g. `CLA-3`. If none is given, run the `get-linear-i
     1. Read the target repo from `git remote get-url origin`. If origin is missing or non-GitHub, stop and tell the user.
     2. Push the branch with `-u` if not already tracking a remote.
     3. **Ask the user for the PR title** — do not auto-generate it. Offer the Linear issue title as a default they can accept or override.
-    4. Auto-generate the PR body from the implementation summary already posted to Linear plus a link to the Linear issue. End the body with a literal `Closes <ISSUE-ID>` line (e.g. `Closes CL-1`) so Linear's GitHub integration auto-closes the issue when the PR merges. **This is exactly why step 7 forbids marking the issue Done in Linear — closing must come from the merge, not from Claude.**
-    5. Create the PR with `gh pr create --title "<user title>" --body "<generated body>"` and return the PR URL.
+    4. **Source the PR body from Linear, not the diff.** Re-fetch the latest comments on the issue via `mcp__linear-server__list_comments` and pick the most recent agent-authored implementation summary (the comment posted by step 7 or its step-8 updates). Use that comment verbatim as the PR body. Do NOT compose the body from the working diff — the Linear comment is the single source of truth so PR and Linear stay in agreement.
+
+       Before drafting, **show the user the comment you're about to use as the PR body** and ask: "Use this as the PR body, or should we update the Linear comment first?" If material iteration happened after the last comment, the user should refresh the Linear comment via a follow-up call before continuing.
+
+    5. **Append a magic-verb closing line and a Linear issue link.** End the body with two lines:
+       - A Linear issue link (e.g. `Linear issue: https://linear.app/<workspace>/issue/<ISSUE-ID>`) for humans.
+       - A magic-verb closing line — default `Closes <ISSUE-ID>` (e.g. `Closes CL-1`). `Fixes <ID>` / `Resolves <ID>` (with `-s`/`-d` variants, case-insensitive) work identically. This is what triggers Linear's GitHub integration to auto-close the issue when the PR merges. **This is exactly why step 7 forbids marking the issue Done in Linear — closing must come from the merge, not from Claude.**
+    6. **One PR, one issue.** Never list multiple `Closes` IDs in a single PR body. If the change spans multiple Linear issues, that's a scope smell — split the PR or merge the issues first. Flag the conflict to the user; do not paper over it with multiple closing lines.
+    7. Create the PR with `gh pr create --title "<user title>" --body "<generated body>"` and return the PR URL.
 
 ## Notes
 

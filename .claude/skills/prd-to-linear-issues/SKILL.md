@@ -19,8 +19,8 @@ The user passes a path to a PRD file as the skill argument. Read it in full. If 
 
 Before drafting issues, figure out where they're going:
 
-- **Team is hardcoded to `Claude-Linear-Github`.** Call `mcp__linear__list_teams`, find the team whose name matches `Claude-Linear-Github`, and use its ID. Do NOT ask the user. If no team with that name exists, stop and tell the user the team is missing.
-- **Project is hardcoded to `Linear-to-github`.** Call `mcp__linear__list_projects` (scoped to that team), find the project whose name matches `Linear-to-github`, and use its ID. Do NOT ask the user. If no project with that name exists, stop and tell the user the project is missing.
+- **Team is hardcoded to `Claude-Linear`.** Call `mcp__linear__list_teams`, find the team whose name matches `Claude-Linear`, and use its ID. Do NOT ask the user. If no team with that name exists, stop and tell the user the team is missing.
+- **Project is hardcoded to `Claude-to-linear-issues`.** Call `mcp__linear__list_projects` (scoped to that team), find the project whose name matches `Claude-to-linear-issues`, and use its ID. Do NOT ask the user. If no project with that name exists, stop and tell the user the project is missing.
 - Call `mcp__linear__list_issue_labels` for the team so you can suggest relevant labels.
 
 Cache the team ID, project ID, and label IDs for the publish step.
